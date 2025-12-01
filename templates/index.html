@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ask about Shoyeb</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- ---------- SIDEBAR ---------- -->
+    <div class="sidebar">
+      <img src="/static/shoyeb.jpg" class="profile-img">
+      <h2 class="name">Shoyeb Chaudhari</h2>
+      <p class="role">Android & Software Developer</p>
+      <button class="newchat-btn" onclick="resetChat()">+ New Chat</button>
+    </div>
+
+    <!-- ---------- CHAT AREA ---------- -->
+    <div class="chat-container">
+      <div class="messages" id="messages"></div>
+
+      <div class="input-area">
+        <textarea id="input" placeholder="Ask anything about Shoyeb..."></textarea>
+        <button class="send" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- SCRIPT ---------- -->
+  <script>
+    const messages = [];
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("input");
+
+    function render() {
+  const lastMessage = messages[messages.length - 1];
+  const div = document.createElement("div");
+  div.className = "message " + (lastMessage.sender === "user" ? "user" : "bot");
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = lastMessage.text;
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+    function addUser(text) {
+      messages.push({ sender: "user", text });
+      render();
+    }
+
+    function addBot(text) {
+      messages.push({ sender: "bot", text });
+      render();
+    }
+
+   function typeMessage(fullText) {
+  let idx = 0;
+  const bubble = messagesEl.lastChild.querySelector(".bubble");
+  const interval = setInterval(() => {
+    bubble.innerHTML = fullText.slice(0, idx);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    idx++;
+    if (idx > fullText.length) clearInterval(interval);
+  }, 12);
+}
+    function resetChat() {
+      messages.length = 0;
+      addBot(
+        "👋 <b>Hi! I'm the AI assistant that knows everything about <i>Shoyeb ShaikhChand Chaudhari</i>.</b><br><br>" +
+        "Ask anything about his <b>skills, projects, internships, education or experience</b>."
+      );
+    }
+    resetChat();
+
+    async function sendMessage() {
+      const question = inputEl.value.trim();
+      if (!question) return;
+
+      inputEl.value = "";
+      addUser(question);
+      addBot("⏳ Typing...");
+      render();
+
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+
+        const data = await res.json();
+        messages.pop();
+        addBot("");
+        typeMessage(data.answer);
+      } catch {
+        messages.pop();
+        addBot("❌ Server error — please try again!");
+      }
+    }
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
